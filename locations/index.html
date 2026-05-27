@@ -198,6 +198,16 @@ details>div{padding:0 22px 20px;color:var(--muted);font-size:14px;line-height:1.
 .footer-policies a{color:var(--muted)}.footer-policies a:hover{color:var(--rose)}
 .footer-bottom{font-size:12px;color:var(--dim);line-height:1.7}
 .notice{font-size:12px;color:var(--dim);background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:18px;line-height:1.7}
+/* 모바일 하단 고정 전화 버튼 */
+.callbar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;
+ padding:9px 12px calc(9px + env(safe-area-inset-bottom,0px));
+ background:rgba(11,11,14,.92);backdrop-filter:blur(12px);border-top:1px solid var(--line)}
+.callbar a{display:flex;align-items:center;justify-content:center;gap:9px;
+ background:var(--grad);color:#1a1108;font-weight:800;font-size:16px;letter-spacing:-.01em;
+ padding:14px;border-radius:14px;box-shadow:0 8px 24px rgba(214,178,116,.34)}
+.callbar a:active{transform:translateY(1px)}
+.callbar svg{width:19px;height:19px;flex-shrink:0}
+@media(max-width:768px){.callbar{display:block}body{padding-bottom:74px}}
 /* reveal */
 .reveal{opacity:0;transform:translateY(20px);transition:.8s}
 .reveal.in{opacity:1;transform:none}
@@ -305,6 +315,9 @@ details>div{padding:0 22px 20px;color:var(--muted);font-size:14px;line-height:1.
 <div class="notice">본 서비스는 19세 이상 성인을 대상으로 하며, 「의료법」상 의료 행위가 아닌 건강관리·이완 목적의 출장 마사지 서비스입니다. 불법·퇴폐 영업과 무관하며, 건전한 관리만 제공합니다.</div>
 <div class="footer-bottom" style="margin-top:18px">© 2026 YH LAB. 마사지바삭. All rights reserved.</div>
 </div></footer>
+<div class="callbar"><a href="tel:0508-202-4717" aria-label="전화 예약 0508-202-4717">
+<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6.6 10.8a15.5 15.5 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24 11.4 11.4 0 0 0 3.6.58 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.4 11.4 0 0 0 .58 3.6 1 1 0 0 1-.24 1z" fill="#1a1108"/></svg>
+24시 전화예약 · 0508-202-4717</a></div>
 <script>
 (function(){
  var t=document.querySelector('.toggle'),m=document.getElementById('primary-menu');
