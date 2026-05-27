@@ -1,8 +1,24 @@
+# robots.txt — 마사지바삭
 User-agent: *
 Allow: /
 Disallow: /admin/
 Disallow: /api/
 
+# 검색엔진 크롤러 명시 허용 (빠른 색인)
+User-agent: Googlebot
+Allow: /
+User-agent: Googlebot-Image
+Allow: /
+User-agent: Yeti
+Allow: /
+User-agent: NaverBot
+Allow: /
+User-agent: Daum
+Allow: /
+User-agent: bingbot
+Allow: /
+
+# AI 크롤러
 User-agent: GPTBot
 Allow: /
 User-agent: ClaudeBot

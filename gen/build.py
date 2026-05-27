@@ -2037,11 +2037,28 @@ def build_meta_files():
     with open(os.path.join(ROOT, "sitemap.xml"), "w", encoding="utf-8") as f:
         f.write(sitemap)
 
-    robots = f"""User-agent: *
+    host = DOMAIN.replace("https://", "").replace("http://", "")
+    robots = f"""# robots.txt — {BRAND}
+User-agent: *
 Allow: /
 Disallow: /admin/
 Disallow: /api/
 
+# 검색엔진 크롤러 명시 허용 (빠른 색인)
+User-agent: Googlebot
+Allow: /
+User-agent: Googlebot-Image
+Allow: /
+User-agent: Yeti
+Allow: /
+User-agent: NaverBot
+Allow: /
+User-agent: Daum
+Allow: /
+User-agent: bingbot
+Allow: /
+
+# AI 크롤러
 User-agent: GPTBot
 Allow: /
 User-agent: ClaudeBot
@@ -2050,10 +2067,53 @@ User-agent: Google-Extended
 Allow: /
 
 Sitemap: {DOMAIN}/sitemap.xml
-Host: {DOMAIN.replace('https://', '')}
+Host: {host}
 """
     with open(os.path.join(ROOT, "robots.txt"), "w", encoding="utf-8") as f:
         f.write(robots)
+
+    # ── RSS 2.0 피드 (네이버 서치어드바이저 / 구글 빠른 발견) ──
+    import email.utils, datetime as _dt
+    def rfc822(days_ago=0):
+        d = _dt.datetime(2026, 5, 27, 9, 0, 0, tzinfo=_dt.timezone.utc) - _dt.timedelta(days=days_ago)
+        return email.utils.format_datetime(d)
+    rss_items = []
+    rss_items.append((BRAND + " — 수도권·부산 24시 출장마사지", "/",
+                      "경기 파주 본사에서 서울·경기·인천·부산 전역으로 출장 관리를 직접 배차합니다."))
+    for m in MAGAZINE:
+        rss_items.append((m["title"], f"/magazine/{m['slug']}/", m["desc"]))
+    for s in SERVICES:
+        rss_items.append((f"{s['name']} 출장마사지", f"/service/{s['slug']}/", s["summary"]))
+    for r in REGIONS:
+        rss_items.append((f"{r['name']} 출장마사지", f"/locations/{r['slug']}/",
+                          f"{r['full']} 전역 행정구·행정동 출장 안내와 권역별 평균 도착 시간."))
+    rss_items += [
+        ("요금 안내 — 정찰 요금제", "/pricing/", "스웨디시·아로마·타이·로미로미·스포츠 5종 60·90·120분 정찰 요금."),
+        ("관리사 안내 — 6개국 매니저", "/therapists/", "한국·중국·태국·베트남·러시아·일본 매니저진 특징과 추천 코스."),
+        ("고객 후기", "/reviews/", "권역·코스별 실제 이용 후기 모음."),
+        ("회사 소개", "/about/", "운영팀·안전 가이드라인·편집 정책 공개."),
+    ]
+    items_xml = ""
+    for i, (t, u, d) in enumerate(rss_items):
+        link = DOMAIN + enc(u)
+        items_xml += (f"<item><title>{esc(t)}</title><link>{link}</link>"
+                      f"<guid isPermaLink=\"true\">{link}</guid>"
+                      f"<description>{esc(d)}</description>"
+                      f"<pubDate>{rfc822(i)}</pubDate></item>\n")
+    rss = (f'<?xml version="1.0" encoding="UTF-8"?>\n'
+           f'<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n<channel>\n'
+           f'<title>{esc(BRAND)} 출장마사지</title>\n<link>{DOMAIN}/</link>\n'
+           f'<atom:link href="{DOMAIN}/rss.xml" rel="self" type="application/rss+xml"/>\n'
+           f'<description>수도권·부산 24시 프리미엄 출장마사지 — 본사 직접 배차</description>\n'
+           f'<language>ko-KR</language>\n<lastBuildDate>{rfc822(0)}</lastBuildDate>\n'
+           f'<generator>{esc(BRAND)}</generator>\n{items_xml}</channel>\n</rss>\n')
+    with open(os.path.join(ROOT, "rss.xml"), "w", encoding="utf-8") as f:
+        f.write(rss)
+
+    # ── IndexNow 키 (Bing·Yandex 즉시 색인 프로토콜) ──
+    INDEXNOW_KEY = "7c3f9e2a4b8d4f6a9c1e5d7b3a2f8e6d"
+    with open(os.path.join(ROOT, f"{INDEXNOW_KEY}.txt"), "w", encoding="utf-8") as f:
+        f.write(INDEXNOW_KEY)
 
     import json as _j
     manifest = {

@@ -285,6 +285,7 @@ def head(title, desc, path, *, og_type="website", extra_ld="", extra_meta="", im
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
+<link rel="alternate" type="application/rss+xml" title="{esc(BRAND)} 매거진" href="/rss.xml">
 {extra_meta}
 <style>{CSS}</style>
 {extra_ld}
