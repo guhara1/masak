@@ -5,7 +5,7 @@ from data import *
 import components as C
 from components import esc, enc, head, header, footer, marquee, note_card, faq_html, \
     faq_ld, breadcrumb_ld, crumb_html, price_grid, cta_band, jsonld, org_ld, \
-    localbusiness_ld
+    localbusiness_ld, byline_html, webpage_ld
 import geo
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -1440,7 +1440,8 @@ def build_district(r, d):
 <div class="databox reveal"><h3>Data &amp; Methodology</h3>
 <p>도착 시간: 최근 {DISPATCH_MONTHS}개월 자체 배차 로그 기준 {esc(dn)} 동별 평균값(정상 교통 기준).</p>
 <p>측정: 예약 접수 시각부터 현장 도착 보고 시각까지 실측 차이를 동 단위로 집계.</p>
-<p>표기 평균은 참고용이며, 출퇴근·심야·기상에 따라 편차가 있습니다.</p></div></section>
+<p>표기 평균은 참고용이며, 출퇴근·심야·기상에 따라 편차가 있습니다.</p></div>
+{byline_html()}</section>
 
 {dong_section}
 {gu_section}
@@ -1458,6 +1459,7 @@ def build_district(r, d):
 {footer()}'''
     ld = jsonld(
         breadcrumb_ld(crumbs),
+        webpage_ld(f"/locations/{r['slug']}/{d['slug']}/", f"{rn} {dn} 출장마사지", desc),
         localbusiness_ld(name=f"{BRAND} {dn}", area=f"{r['full']} {dn}",
                          _id=f"/locations/{r['slug']}/{d['slug']}/#business"),
         {"@type": "AdministrativeArea", "name": f"{r['full']} {dn}"},
@@ -1596,7 +1598,8 @@ def build_dong(r, parent_name, parent_path, parent_crumbs, base_avg, dong, dong_
 <div class="databox reveal"><h3>Data &amp; Methodology</h3>
 <p>도착 시간: 최근 {DISPATCH_MONTHS}개월 자체 배차 로그 기준 {esc(dn)} {esc(dong)} 일대 평균값(정상 교통 기준).</p>
 <p>측정: 예약 접수 시각부터 현장 도착 보고 시각까지 실측 차이를 동 단위로 집계.</p>
-<p>표기 평균은 참고용이며, 출퇴근·심야·기상에 따라 편차가 있습니다.</p></div></section>
+<p>표기 평균은 참고용이며, 출퇴근·심야·기상에 따라 편차가 있습니다.</p></div>
+{byline_html()}</section>
 
 <section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">PRICING</span><h2>요금</h2></div>
 {price_grid(SERVICES)}</section>
@@ -1611,6 +1614,7 @@ def build_dong(r, parent_name, parent_path, parent_crumbs, base_avg, dong, dong_
 {footer()}'''
     ld = jsonld(
         breadcrumb_ld(crumbs),
+        webpage_ld(path, f"{dn} {dong} 출장마사지", desc),
         localbusiness_ld(name=f"{BRAND} {dong}", area=f"{full} {dn} {dong}",
                          _id=enc(path) + "#business"),
         {"@type": "Service", "serviceType": "출장마사지", "name": f"{dong} 출장마사지",
@@ -1732,7 +1736,8 @@ def build_gu(r, city, gslug, gname, gdongs, city_avg):
 <div class="databox reveal"><h3>Data &amp; Methodology</h3>
 <p>도착 시간: 최근 {DISPATCH_MONTHS}개월 자체 배차 로그 기준 {esc(gname)} 동별 평균값(정상 교통 기준).</p>
 <p>측정: 예약 접수 시각부터 현장 도착 보고 시각까지 실측 차이를 동 단위로 집계.</p>
-<p>표기 평균은 참고용이며, 출퇴근·심야·기상에 따라 편차가 있습니다.</p></div></section>
+<p>표기 평균은 참고용이며, 출퇴근·심야·기상에 따라 편차가 있습니다.</p></div>
+{byline_html()}</section>
 
 {dong_section}
 
@@ -1749,6 +1754,7 @@ def build_gu(r, city, gslug, gname, gdongs, city_avg):
 {footer()}'''
     ld = jsonld(
         breadcrumb_ld(crumbs),
+        webpage_ld(path, f"{cn} {gname} 출장마사지", desc),
         localbusiness_ld(name=f"{BRAND} {head_name}", area=f"{full} {cn} {gname}",
                          _id=path + "#business"),
         {"@type": "AdministrativeArea", "name": f"{full} {cn} {gname}"},

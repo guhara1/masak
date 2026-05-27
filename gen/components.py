@@ -183,6 +183,8 @@ details>div{padding:0 22px 20px;color:var(--muted);font-size:14px;line-height:1.
 .footer-policies a{color:var(--muted)}.footer-policies a:hover{color:var(--rose)}
 .footer-bottom{font-size:12px;color:var(--dim);line-height:1.7}
 .notice{font-size:12px;color:var(--dim);background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:18px;line-height:1.7}
+.byline{font-size:12.5px;color:var(--dim);margin-top:14px;line-height:1.7}
+.byline a{color:var(--muted);text-decoration:underline}
 /* 모바일 하단 고정 전화 버튼 */
 .callbar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;
  padding:9px 12px calc(9px + env(safe-area-inset-bottom,0px));
@@ -399,6 +401,23 @@ def footer():
 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6.6 10.8a15.5 15.5 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24 11.4 11.4 0 0 0 3.6.58 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.4 11.4 0 0 0 .58 3.6 1 1 0 0 1-.24 1z" fill="#1a1108"/></svg>
 24시 전화예약 · {esc(TEL)}</a></div>
 <script>{JS}</script></body></html>"""
+
+def byline_html(updated="2026-05-27"):
+    return (f'<p class="byline reveal">작성 <a href="/about/">{esc(AUTHOR)}</a> · '
+            f'검수 {esc(TEAM[1]["name"])} {esc(TEAM[1]["role"])} · '
+            f'최종 업데이트 {updated} · <a href="/about/">편집·데이터 정책</a></p>')
+
+def webpage_ld(path, name, desc):
+    return {"@type": "WebPage", "@id": DOMAIN + enc(path) + "#webpage",
+            "url": DOMAIN + enc(path), "name": name, "description": desc,
+            "inLanguage": "ko-KR", "isPartOf": {"@id": DOMAIN + "/#website"},
+            "datePublished": "2026-01-10", "dateModified": "2026-05-27",
+            "lastReviewed": "2026-05-27",
+            "author": {"@type": "Organization", "name": AUTHOR, "url": DOMAIN + "/about/"},
+            "reviewedBy": {"@type": "Person", "name": TEAM[1]["name"], "jobTitle": TEAM[1]["role"]},
+            "publisher": {"@id": DOMAIN + "/#org"},
+            "primaryImageOfPage": {"@type": "ImageObject", "url": DOMAIN + "/assets/og-cover.jpg",
+                                   "width": 1200, "height": 630}}
 
 def org_ld():
     return {"@type": "Organization", "@id": DOMAIN + "/#org", "name": BRAND,
