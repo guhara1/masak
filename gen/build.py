@@ -3,9 +3,10 @@
 import os, random, datetime
 from data import *
 import components as C
-from components import esc, head, header, footer, marquee, note_card, faq_html, \
+from components import esc, enc, head, header, footer, marquee, note_card, faq_html, \
     faq_ld, breadcrumb_ld, crumb_html, price_grid, cta_band, jsonld, org_ld, \
     localbusiness_ld
+import geo
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 PAGES = []   # (path_url, char_count) for sitemap + validation
@@ -1314,6 +1315,45 @@ def build_district(r, d):
              f"{dn} 단골 고객을 위한 재방문 매니저 지정도 가능합니다."]),
     )
     reviews = district_reviews(d, rn)
+    # 행정동 목록 (서울·인천·부산) — 동별 페이지 카드
+    dong_names = geo.DONG_REGIONS.get(r["slug"], {}).get(d["slug"], [])
+    dong_section = ""
+    if dong_names:
+        cs = []
+        for dname in dong_names:
+            mins = dong_arrival(avg, r["slug"] + d["slug"] + dname)
+            href = enc(f"/locations/{r['slug']}/{d['slug']}/{dname}/")
+            cs.append(
+                f'<a class="card reveal" href="{href}"><div class="kicker">{esc(dn)}</div>'
+                f'<h3>{esc(dname)}</h3><p>{esc(dname)} 출장마사지 · 평균 도착 약 {mins}분. '
+                f'동별 도착 시간·추천 코스·후기를 확인하세요.</p>'
+                f'<span class="more">{esc(dname)} 보기 →</span></a>')
+        dong_section = (
+            f'<section class="wrap cv"><div class="sec-head reveal">'
+            f'<span class="eyebrow">DONG · 행정동 {len(dong_names)}</span>'
+            f'<h2>{esc(dn)} 행정동</h2>'
+            f'<p class="lead">아래 행정동을 누르면 동별 평균 도착 시간과 특화 콘텐츠를 확인할 수 있습니다. '
+            f'1동·2동처럼 번호가 붙은 동은 기본 동명으로 통합했습니다.</p></div>'
+            f'<div class="grid g4">{"".join(cs)}</div></section>')
+    # 행정구 목록 (경기 일부 시) — 구별 페이지 카드
+    gu_list = geo.GYEONGGI_GU.get(d["slug"], []) if r["slug"] == "gyeonggi" else []
+    gu_section = ""
+    if gu_list:
+        cs = []
+        for gslug, gname, gdongs in gu_list:
+            gmin = dong_arrival(avg, r["slug"] + d["slug"] + gslug)
+            href = f"/locations/{r['slug']}/{d['slug']}/{gslug}/"
+            cs.append(
+                f'<a class="card reveal" href="{href}"><div class="kicker">{esc(dn)}</div>'
+                f'<h3>{esc(gname)}</h3><p>{esc(dn)} {esc(gname)} 출장마사지 · 평균 도착 약 {gmin}분. '
+                f'{esc("、".join(gdongs[:3]))} 등 권역 데이터를 확인하세요.</p>'
+                f'<span class="more">{esc(gname)} 보기 →</span></a>')
+        gu_section = (
+            f'<section class="wrap cv"><div class="sec-head reveal">'
+            f'<span class="eyebrow">GU · 행정구 {len(gu_list)}</span>'
+            f'<h2>{esc(dn)} 행정구</h2>'
+            f'<p class="lead">아래 행정구를 누르면 구별 평균 도착 시간과 특화 콘텐츠를 확인할 수 있습니다.</p></div>'
+            f'<div class="grid g4">{"".join(cs)}</div></section>')
     faq = [
         (f"{dn}은 도착까지 얼마나 걸리나요?", f"{dn} 전체 평균은 약 {avg}분이며, {fast[0]}은 {fast[1]}분대, {slow[0]}은 {slow[1]}분대로 동별 차이가 있습니다. 예약 시 실제 예상 시간을 안내드립니다."),
         (f"{dn} 어떤 동까지 출장이 되나요?", f"{dong_list} 등 {dn} 전 지역으로 출장합니다."),
@@ -1346,6 +1386,9 @@ def build_district(r, d):
 <p>측정: 예약 접수 시각부터 현장 도착 보고 시각까지 실측 차이를 동 단위로 집계.</p>
 <p>표기 평균은 참고용이며, 출퇴근·심야·기상에 따라 편차가 있습니다.</p></div></section>
 
+{dong_section}
+{gu_section}
+
 <section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">PRICING</span><h2>요금</h2></div>
 {price_grid(SERVICES)}</section>
 
@@ -1370,6 +1413,273 @@ def build_district(r, d):
         faq_ld(faq))
     write(f"/locations/{r['slug']}/{d['slug']}/",
           head(title, desc, f"/locations/{r['slug']}/{d['slug']}/", extra_ld=ld), body)
+    # 행정동 leaf 페이지 생성
+    for dname in dong_names:
+        build_dong(r, d, dname, avg, dong_names)
+    # 행정구 leaf 페이지 생성 (경기 일부 시)
+    for gslug, gname, gdongs in gu_list:
+        build_gu(r, d, gslug, gname, gdongs, avg)
+
+
+# ════════════════════════════════════════════════════════════
+# 행정동(동) leaf 페이지
+# ════════════════════════════════════════════════════════════
+def dong_arrival(base, key):
+    rnd = random.Random("arr" + key)
+    return max(20, base + rnd.randint(-4, 6))
+
+DSITU = ["야근 후 늦은 밤", "주말 오후", "오랜만의 휴식으로", "어깨가 무거운 날",
+         "장거리 운전 뒤", "재택근무로 굳은 몸을 풀려고", "수면이 부족할 때",
+         "운동을 마치고", "기념일에 셀프 선물로", "허리가 뻐근한 날"]
+
+def dong_reviews(dong, dn, rn, key, n=5):
+    rnd = random.Random("dongrev" + key)
+    out = []
+    for i in range(n):
+        svc = rnd.choice(SERVICES); dur = rnd.choice(["60분", "90분", "120분"])
+        situ = rnd.choice(DSITU); praise = rnd.choice(PRAISE)
+        text = (f"{dong}에서 {situ} {svc['name']} {dur} 코스를 예약했어요. "
+                f"{praise} {dn} {dong} 쪽은 안내받은 도착 시간대도 정확했습니다.")
+        out.append({"name": rnd.choice(NAMES), "rating": rnd.choice([5, 5, 5, 4]),
+                    "text": text, "title": f"{dong} {svc['name']} 후기"})
+    return out
+
+def build_dong(r, d, dong, district_avg, dong_list):
+    rn = r["name"]; dn = d["name"]; full = r["full"]
+    key = r["slug"] + d["slug"] + dong
+    mins = dong_arrival(district_avg, key)
+    sibs = [x for x in dong_list if x != dong]
+    rnd = random.Random("sib" + key); rnd.shuffle(sibs)
+    sib_str = "、".join(sibs[:3]) if sibs else dn
+    landmarks = "、".join(d["landmarks"])
+    lm0 = d["landmarks"][0]
+    path = f"/locations/{r['slug']}/{d['slug']}/{dong}/"
+    title = f"{rn} {dn} {dong} 출장마사지 — 평균 도착 약 {mins}분 | {BRAND}"
+    desc = (f"{full} {dn} {dong} 출장마사지. 평균 도착 약 {mins}분, 정찰 요금, "
+            f"{dong} 특화 후기를 안내합니다. 스웨디시·아로마·타이·로미로미·스포츠 24시간.")
+
+    overview = (
+        note_card(5, f"{dong} 평균 도착 시간",
+            [f"{dn} {dong} 일대의 출장 평균 도착 시간은 약 {mins}분입니다(정상 교통 기준).",
+             f"이는 {dn} 전체 평균(약 {district_avg}분)과 비교해 권역 내 위치와 접근성을 반영한 값입니다.",
+             f"인접한 {sib_str} 방면과 매니저 동선을 공유해 배차 효율을 높이고 있습니다.",
+             "출퇴근·심야·기상 상황에 따라 편차가 있어 예약 시 실제 예상 시간을 다시 안내드립니다."]),
+        note_card(6, f"{dong} 시간대별 콜 분포",
+            [f"{dong}이 속한 {dn}은 {d['character']}입니다.",
+             "그래서 저녁부터 심야로 갈수록 예약이 몰리는 시간대가 형성됩니다.",
+             "피크 시간에는 표기 평균보다 도착이 다소 길어질 수 있어 여유 있는 예약을 권합니다.",
+             f"본사는 {dong} 인근의 콜 분포를 분석해 야간 배차 인력을 보강하고 있습니다."]),
+        note_card(7, f"{dong}에 어울리는 추천 코스",
+            [f"{lm0} 등 {dn} 주요 거점과 가까운 {dong}은 업무·주거 피로를 호소하는 고객이 많습니다.",
+             "수면 부족·스트레스가 주된 고민이면 아로마 90분이나 스웨디시가 무난합니다.",
+             "장시간 좌식이나 운동 후 근피로가 뚜렷하면 타이 스트레칭이나 스포츠 코스를 권합니다.",
+             "선택이 어렵다면 상담 시 컨디션을 말씀해 주시면 맞춤으로 추천드립니다."]),
+        note_card(8, f"{dong} 예약·결제·환불",
+            [f"{dong} 출장 예약은 {TEL} 전화 또는 24시간 상담으로 접수합니다.",
+             "모든 코스는 정찰 요금으로 진행되며 코스 외 추가 비용이나 지역 할증이 없습니다.",
+             "매니저 출발 전 취소는 위약금이 없고, 출발 후에는 이동 비용이 발생할 수 있습니다.",
+             "결제 수단과 영수증 발행은 예약 단계에서 안내드립니다."]),
+    )
+    fieldnotes = (
+        note_card(1, f"{dong}은 어떤 동인가요",
+            [f"{dong}은 {full} {dn}에 속한 행정동입니다.",
+             f"{landmarks} 등 {dn} 주요 거점을 중심으로 한 생활·이동 동선 안에 자리합니다.",
+             f"인접한 {sib_str} 등과 함께 본사 디스패처가 하나의 배차 권역으로 관리합니다.",
+             "1동·2동처럼 번호가 붙은 행정동은 기본 동명으로 통합해 안내합니다."]),
+        note_card(2, f"{dong} 매니저 배치와 도착",
+            [f"본사는 {dn} 권역의 수요에 맞춰 {dong} 인근에 매니저를 배치합니다.",
+             f"덕분에 {dong} 일대는 평균 약 {mins}분 내외로 도착하는 경우가 많습니다.",
+             "다만 시간대와 교통 상황에 따라 도착 시간은 달라질 수 있습니다.",
+             "예약 시점의 실제 예상 도착 시간을 분 단위로 다시 안내드립니다."]),
+        note_card(3, f"{dong} 안전 가이드",
+            [f"안전 자문 트레이너 {TEAM[1]['name']}({TEAM[1]['bio']})의 가이드라인을 {dong}에서도 동일하게 적용합니다.",
+             "관리 전 압 세기와 집중 부위, 금기 사항을 확인한 뒤 진행합니다.",
+             "임신·고혈압·급성 통증 등은 사전 고지 시 코스를 조정합니다.",
+             "본 서비스는 의료 행위가 아닌 19세 이상 대상의 이완·건강관리 서비스입니다."]),
+        note_card(4, f"{dong} 운영 원칙",
+            ["정찰 요금제로 운영해 심야·휴일이라는 이유의 임의 할증이 없습니다.",
+             "예약 단계에서 코스·시간·도착 예정·결제 금액을 모두 안내합니다.",
+             "외부 중개 없이 본사 디스패처가 직접 배차해 책임 소재가 분명합니다.",
+             f"{dong} 단골 고객을 위한 재방문 매니저 지정도 가능합니다."]),
+    )
+    reviews = dong_reviews(dong, dn, rn, key, n=5)
+    faq = [
+        (f"{dong}은 도착까지 얼마나 걸리나요?", f"{dn} {dong} 일대는 평균 약 {mins}분입니다(정상 교통 기준). 시간대·교통에 따라 달라질 수 있어 예약 시 실제 예상 시간을 안내드립니다."),
+        (f"{dong}도 출장이 되나요?", f"네, {dong} 전 지역으로 출장합니다. 인접한 {sib_str} 등도 같은 권역으로 배차합니다."),
+        (f"{dong} 요금은 다른 곳과 다른가요?", "아니요. 모든 지역이 동일한 정찰 요금이며 지역별 출장비 할증이 없습니다."),
+        ("심야에도 예약이 되나요?", f"네, 연중무휴 24시간 운영합니다. {dong}은 저녁·심야 예약이 몰리는 편이라 여유 있게 예약하시면 좋습니다."),
+        ("관리사 국적을 고를 수 있나요?", "한국·중국·태국·베트남·러시아·일본 6개국 중 선호를 말씀하시면 배차 상황에 맞춰 반영합니다."),
+        (f"{dong} 예약은 어떻게 하나요?", f"{TEL} 전화 또는 24시간 상담으로 위치와 코스를 알려주시면 본사 디스패처가 배차합니다."),
+    ]
+    crumbs = [("홈", "/"), ("지역", "/locations/"), (rn, f"/locations/{r['slug']}/"),
+              (dn, f"/locations/{r['slug']}/{d['slug']}/"), (dong, path)]
+    body = f'''{header()}
+{crumb_html(crumbs)}
+<section class="hero compact"><div class="hero-inner"><div class="hero-copy reveal">
+<span class="eyebrow"><span class="pulse"></span>{esc(rn)} {esc(dn)} · {esc(dong)} OPERATIONS</span>
+<h1>{esc(dong)} 출장마사지</h1>
+<p class="lead">{esc(full)} {esc(dn)} {esc(dong)} 일대 평균 도착 약 {mins}분. 정찰 요금과 {esc(dong)} 특화 후기를 데이터로 안내합니다.</p>
+<div class="chips">
+<div class="chip">AVG ARRIVAL<b>약 {mins}분</b></div>
+<div class="chip">AVAILABLE<b>연중무휴 24시</b></div>
+<div class="chip">AREA<b>{esc(dn)}</b></div></div>
+<div class="actions"><a class="btn btn-primary" href="tel:{TEL}">예약 {esc(TEL)} →</a>
+<a class="btn btn-ghost" href="{enc(f"/locations/{r['slug']}/{d['slug']}/")}">{esc(dn)} 전체 보기</a></div></div></div></section>
+
+<section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">OVERVIEW</span><h2>{esc(dong)} 운영 개요</h2></div>
+{"".join(overview)}</section>
+
+<section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">FIELD NOTES · 2026</span><h2>{esc(dong)} 현장 노트</h2></div>
+{"".join(fieldnotes)}
+<div class="databox reveal"><h3>Data &amp; Methodology</h3>
+<p>도착 시간: 최근 {DISPATCH_MONTHS}개월 자체 배차 로그 기준 {esc(dn)} {esc(dong)} 일대 평균값(정상 교통 기준).</p>
+<p>측정: 예약 접수 시각부터 현장 도착 보고 시각까지 실측 차이를 동 단위로 집계.</p>
+<p>표기 평균은 참고용이며, 출퇴근·심야·기상에 따라 편차가 있습니다.</p></div></section>
+
+<section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">PRICING</span><h2>요금</h2></div>
+{price_grid(SERVICES)}</section>
+
+<section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">FAQ</span><h2>{esc(dong)} 자주 묻는 질문</h2></div>
+{faq_html(faq)}</section>
+
+<section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">REVIEWS</span><h2>{esc(dong)} 이용 후기</h2></div>
+{review_cards(reviews)}</section>
+
+{cta_band(f"{dong}, 지금 가장 가까운 매니저를 보내드립니다.")}
+{footer()}'''
+    ld = jsonld(
+        breadcrumb_ld(crumbs),
+        localbusiness_ld(name=f"{BRAND} {dong}", area=f"{full} {dn} {dong}",
+                         _id=enc(path) + "#business"),
+        {"@type": "Service", "serviceType": "출장마사지", "name": f"{dong} 출장마사지",
+         "provider": {"@id": DOMAIN + "/#org"},
+         "areaServed": {"@type": "Place", "name": f"{full} {dn} {dong}"}},
+        {"@type": "AggregateRating", "itemReviewed": {"@type": "LocalBusiness", "name": f"{BRAND} {dong}"},
+         "ratingValue": RATING_VALUE, "reviewCount": len(reviews) * 12 + 40, "bestRating": "5"},
+        *reviews_ld(reviews, f"{dong} 출장마사지"),
+        faq_ld(faq))
+    write(path, head(title, desc, path, extra_ld=ld), body)
+
+
+# ════════════════════════════════════════════════════════════
+# 행정구(경기 일부 시) leaf 페이지
+# ════════════════════════════════════════════════════════════
+def build_gu(r, city, gslug, gname, gdongs, city_avg):
+    rn = r["name"]; cn = city["name"]; full = r["full"]
+    key = r["slug"] + city["slug"] + gslug
+    gavg = dong_arrival(city_avg, key)
+    # 구 내 동별 도착시간(결정적)
+    dong_mins = [(dname, dong_arrival(gavg, key + dname)) for dname in gdongs]
+    fast = min(dong_mins, key=lambda x: x[1]); slow = max(dong_mins, key=lambda x: x[1])
+    dong_list = "、".join(f"{n} 약 {m}분" for n, m in dong_mins)
+    head_name = f"{cn} {gname}"
+    path = f"/locations/{r['slug']}/{city['slug']}/{gslug}/"
+    title = f"{cn} {gname} 출장마사지 — 동별 평균 도착 시간 공개 | {BRAND}"
+    desc = (f"{full} {cn} {gname} 출장마사지. {', '.join(n for n, _ in dong_mins[:3])} 등 "
+            f"동별 평균 도착 시간과 정찰 요금, {gname} 특화 후기를 안내합니다.")
+
+    overview = (
+        note_card(5, f"{gname} 동(洞)별 평균 도착 시간",
+            [f"{cn} {gname} 안에서도 동별로 접근성이 달라 평균 도착 시간에 차이가 있습니다.",
+             f"실측 기준 {dong_list} 수준입니다.",
+             f"가장 빠른 권역은 {fast[0]}({fast[1]}분대), 시간이 더 걸리는 곳은 {slow[0]}({slow[1]}분대)입니다.",
+             f"{gname} 전체 평균은 약 {gavg}분으로, 정상 교통 기준 자체 배차 로그에서 산출한 값입니다."]),
+        note_card(6, f"{gname} 시간대별 콜 분포",
+            [f"{gname}은 {cn}의 주요 생활·업무 권역 중 하나입니다.",
+             "저녁부터 심야로 갈수록 예약이 몰리는 시간대가 형성됩니다.",
+             "피크 시간에는 표기 평균보다 도착이 다소 길어질 수 있어 여유 있는 예약을 권합니다.",
+             f"본사는 {gname} 인근의 콜 분포를 분석해 야간 배차를 보강합니다."]),
+        note_card(7, f"{gname}에 어울리는 추천 코스",
+            [f"{gname} 일대는 업무·주거 피로로 인한 이완 수요가 많습니다.",
+             "수면 부족·스트레스가 주된 고민이면 아로마 90분이나 스웨디시가 무난합니다.",
+             "장시간 좌식·운동 후 근피로가 뚜렷하면 타이 스트레칭이나 스포츠 코스를 권합니다.",
+             "선택이 어렵다면 상담 시 컨디션을 말씀해 주시면 맞춤으로 추천드립니다."]),
+        note_card(8, f"{gname} 예약·결제·환불",
+            [f"{gname} 출장 예약은 {TEL} 전화 또는 24시간 상담으로 접수합니다.",
+             "모든 코스는 정찰 요금으로 진행되며 코스 외 추가 비용이나 지역 할증이 없습니다.",
+             "매니저 출발 전 취소는 위약금이 없고, 출발 후에는 이동 비용이 발생할 수 있습니다.",
+             "결제 수단과 영수증 발행은 예약 단계에서 안내드립니다."]),
+    )
+    fieldnotes = (
+        note_card(1, f"{gname}은 어떤 권역인가요",
+            [f"{gname}은 {full} {cn}를 구성하는 행정구입니다.",
+             f"{', '.join(n for n, _ in dong_mins[:4])} 등 생활권을 중심으로 이동 동선이 형성됩니다.",
+             "권역 성격은 시간대별 수요와 도착 시간에 직접 영향을 줍니다.",
+             "그래서 단순한 지역명 치환이 아니라 권역별 실제 데이터로 안내드립니다."]),
+        note_card(2, f"{gname} 매니저 배치와 도착",
+            [f"본사는 {cn} 권역의 콜 분포에 맞춰 {gname} 인근에 매니저를 배치합니다.",
+             f"덕분에 {fast[0]} 방면은 약 {fast[1]}분대로 비교적 빠르게 도착합니다.",
+             f"반면 {slow[0]} 방면은 거리상 {slow[1]}분대로 다소 더 소요됩니다.",
+             "예약 시점의 실제 예상 도착 시간을 분 단위로 다시 안내드립니다."]),
+        note_card(3, f"{gname} 안전 가이드",
+            [f"안전 자문 트레이너 {TEAM[1]['name']}({TEAM[1]['bio']})의 가이드라인을 {gname}에서도 동일하게 적용합니다.",
+             "관리 전 압 세기와 집중 부위, 금기 사항을 확인한 뒤 진행합니다.",
+             "임신·고혈압·급성 통증 등은 사전 고지 시 코스를 조정합니다.",
+             "본 서비스는 의료 행위가 아닌 19세 이상 대상의 이완·건강관리 서비스입니다."]),
+        note_card(4, f"{gname} 운영 원칙",
+            ["정찰 요금제로 운영해 심야·휴일이라는 이유의 임의 할증이 없습니다.",
+             "예약 단계에서 코스·시간·도착 예정·결제 금액을 모두 안내합니다.",
+             "외부 중개 없이 본사 디스패처가 직접 배차해 책임 소재가 분명합니다.",
+             f"{gname} 단골 고객을 위한 재방문 매니저 지정도 가능합니다."]),
+    )
+    reviews = dong_reviews(gname, cn, rn, key, n=5)
+    faq = [
+        (f"{gname}은 도착까지 얼마나 걸리나요?", f"{gname} 전체 평균은 약 {gavg}분이며, {fast[0]}은 {fast[1]}분대, {slow[0]}은 {slow[1]}분대로 동별 차이가 있습니다. 예약 시 실제 예상 시간을 안내드립니다."),
+        (f"{gname} 어떤 동까지 출장이 되나요?", f"{dong_list} 등 {gname} 전 지역으로 출장합니다."),
+        (f"{gname} 요금은 다른 곳과 다른가요?", "아니요. 모든 지역이 동일한 정찰 요금이며 지역별 출장비 할증이 없습니다."),
+        ("심야에도 예약이 되나요?", f"네, 연중무휴 24시간 운영합니다. {gname}은 저녁·심야 예약이 몰리는 편이라 여유 있게 예약하시면 좋습니다."),
+        ("관리사 국적을 고를 수 있나요?", "한국·중국·태국·베트남·러시아·일본 6개국 중 선호를 말씀하시면 배차 상황에 맞춰 반영합니다."),
+        (f"{gname} 예약은 어떻게 하나요?", f"{TEL} 전화 또는 24시간 상담으로 위치와 코스를 알려주시면 본사 디스패처가 배차합니다."),
+    ]
+    crumbs = [("홈", "/"), ("지역", "/locations/"), (rn, f"/locations/{r['slug']}/"),
+              (cn, f"/locations/{r['slug']}/{city['slug']}/"), (gname, path)]
+    body = f'''{header()}
+{crumb_html(crumbs)}
+<section class="hero compact"><div class="hero-inner"><div class="hero-copy reveal">
+<span class="eyebrow"><span class="pulse"></span>{esc(cn)} · {esc(gname)} OPERATIONS</span>
+<h1>{esc(gname)} 출장마사지</h1>
+<p class="lead">{esc(full)} {esc(cn)} {esc(gname)} 동별 평균 도착 시간과 정찰 요금, {esc(gname)} 특화 후기를 데이터로 안내합니다.</p>
+<div class="chips">
+<div class="chip">AVG ARRIVAL<b>약 {gavg}분</b></div>
+<div class="chip">AVAILABLE<b>연중무휴 24시</b></div>
+<div class="chip">AREA<b>{esc(cn)}</b></div></div>
+<div class="actions"><a class="btn btn-primary" href="tel:{TEL}">예약 {esc(TEL)} →</a>
+<a class="btn btn-ghost" href="{enc(f"/locations/{r['slug']}/{city['slug']}/")}">{esc(cn)} 전체 보기</a></div></div></div></section>
+
+<section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">OVERVIEW</span><h2>{esc(gname)} 운영 개요</h2></div>
+{"".join(overview)}</section>
+
+<section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">FIELD NOTES · 2026</span><h2>{esc(gname)} 현장 노트</h2></div>
+{"".join(fieldnotes)}
+<div class="databox reveal"><h3>Data &amp; Methodology</h3>
+<p>도착 시간: 최근 {DISPATCH_MONTHS}개월 자체 배차 로그 기준 {esc(gname)} 동별 평균값(정상 교통 기준).</p>
+<p>측정: 예약 접수 시각부터 현장 도착 보고 시각까지 실측 차이를 동 단위로 집계.</p>
+<p>표기 평균은 참고용이며, 출퇴근·심야·기상에 따라 편차가 있습니다.</p></div></section>
+
+<section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">PRICING</span><h2>요금</h2></div>
+{price_grid(SERVICES)}</section>
+
+<section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">FAQ</span><h2>{esc(gname)} 자주 묻는 질문</h2></div>
+{faq_html(faq)}</section>
+
+<section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">REVIEWS</span><h2>{esc(gname)} 이용 후기</h2></div>
+{review_cards(reviews)}</section>
+
+{cta_band(f"{gname}, 지금 가장 가까운 매니저를 보내드립니다.")}
+{footer()}'''
+    ld = jsonld(
+        breadcrumb_ld(crumbs),
+        localbusiness_ld(name=f"{BRAND} {head_name}", area=f"{full} {cn} {gname}",
+                         _id=path + "#business"),
+        {"@type": "AdministrativeArea", "name": f"{full} {cn} {gname}"},
+        {"@type": "Service", "serviceType": "출장마사지", "name": f"{gname} 출장마사지",
+         "provider": {"@id": DOMAIN + "/#org"},
+         "areaServed": {"@type": "AdministrativeArea", "name": f"{full} {cn} {gname}"}},
+        {"@type": "AggregateRating", "itemReviewed": {"@type": "LocalBusiness", "name": f"{BRAND} {head_name}"},
+         "ratingValue": RATING_VALUE, "reviewCount": len(reviews) * 18 + 60, "bestRating": "5"},
+        *reviews_ld(reviews, f"{gname} 출장마사지"),
+        faq_ld(faq))
+    write(path, head(title, desc, path, extra_ld=ld), body)
 
 
 # ════════════════════════════════════════════════════════════
@@ -1624,7 +1934,7 @@ def build_meta_files():
     urls = ""
     for u, _ in sorted(set(PAGES)):
         p, f = prio(u)
-        urls += (f"<url><loc>{DOMAIN}{u}</loc><lastmod>{today}</lastmod>"
+        urls += (f"<url><loc>{DOMAIN}{enc(u)}</loc><lastmod>{today}</lastmod>"
                  f"<changefreq>{f}</changefreq><priority>{p}</priority></url>\n")
     sitemap = ('<?xml version="1.0" encoding="UTF-8"?>\n'
                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'

@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 """공통 컴포넌트 — head/CSS/header/footer/JSON-LD 및 재사용 HTML 헬퍼."""
-import json, html
+import json, html, urllib.parse
 from data import (DOMAIN, BRAND, BRAND_EN, COMPANY, CEO, BIZ_NO, ADDRESS, TEL,
                   TEL_RAW, EMAIL, MTS_NO, PRIVACY_OFFICER, AUTHOR, TEAM,
                   SERVICES, THERAPISTS, REGIONS, RATING_VALUE, RATING_COUNT)
 
 def esc(s): return html.escape(str(s), quote=True)
+
+def enc(path):
+    """경로의 한글 세그먼트를 퍼센트 인코딩(ASCII·'/'는 그대로)."""
+    return urllib.parse.quote(path, safe="/-._~")
 
 # ─────────────────────────────────────────────────────────────
 # CSS — 블루프린트 디자인 시스템 (다크 + 로즈골드)
@@ -237,7 +241,7 @@ def jsonld(*objs):
             + "</script>")
 
 def head(title, desc, path, *, og_type="website", extra_ld="", img="/assets/og-cover.jpg"):
-    url = DOMAIN + path
+    url = DOMAIN + enc(path)
     return f"""<!doctype html><html lang="ko"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -313,14 +317,14 @@ def faq_ld(qa):
 
 def breadcrumb_ld(items):
     return {"@type": "BreadcrumbList", "itemListElement": [
-        {"@type": "ListItem", "position": i + 1, "name": n, "item": DOMAIN + u}
+        {"@type": "ListItem", "position": i + 1, "name": n, "item": DOMAIN + enc(u)}
         for i, (n, u) in enumerate(items)]}
 
 def crumb_html(items):
     parts = []
     for i, (n, u) in enumerate(items):
         if i < len(items) - 1:
-            parts.append(f'<a href="{u}">{esc(n)}</a>')
+            parts.append(f'<a href="{enc(u)}">{esc(n)}</a>')
         else:
             parts.append(esc(n))
     return '<nav class="crumb wrap" style="padding-bottom:0" aria-label="이동 경로">' + " / ".join(parts) + "</nav>"
