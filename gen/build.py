@@ -46,19 +46,58 @@ PRAISE = ["관리사분이 시간을 정확히 지켜 도착하셔서 좋았어�
 NAMES = ["김○○", "이○○", "박○○", "최○○", "정○○", "강○○", "조○○", "윤○○",
          "장○○", "임○○", "한○○", "오○○", "서○○", "신○○", "권○○"]
 
+# 동/구 카드용 고객 특성 문구 (반복 보일러플레이트 대신 사용)
+CHAR_POOL = [
+    "야근 후 늦은 밤 예약이 잦은 권역입니다.",
+    "1인 가구·직장인 수요가 많은 생활권입니다.",
+    "주거 단지가 많아 가족 단위 예약이 고른 편입니다.",
+    "주말 오후 예약 비중이 높은 편입니다.",
+    "재택근무로 굳은 몸을 푸는 수요가 많습니다.",
+    "출퇴근 피로 회복을 찾는 분이 많습니다.",
+    "수면 부족·스트레스 완화 예약이 잦습니다.",
+    "장시간 좌식 근무 후 어깨·허리 케어 수요가 많습니다.",
+    "운동 후 근피로 회복 예약이 꾸준한 편입니다.",
+    "조용한 주거 환경으로 심야 예약도 안정적입니다.",
+    "젊은 직장인·신혼 세대 예약이 많은 편입니다.",
+    "단골 재방문 비율이 높은 권역입니다.",
+    "상권이 가까워 단기 출장 예약이 많습니다.",
+    "중장년층 정기 관리 수요가 꾸준합니다.",
+]
+
+# 후기 마무리 문장 (페이지 내 후기마다 다르게)
+CLOSERS = [
+    "{area} 쪽은 안내받은 도착 시간대도 정확했어요.",
+    "{area} 권역이라 그런지 도착이 빨라 만족했습니다.",
+    "다음에도 {area}에서 또 이용하려고요.",
+    "{area} 처음 이용인데 부담 없이 좋았습니다.",
+    "{area}은 심야였는데도 응대가 깔끔했어요.",
+    "친구에게도 {area} 이용을 추천했습니다.",
+    "{area} 안에서 재방문 의사 충분합니다.",
+    "{area}까지 빠르게 와주셔서 편했어요.",
+    "{area} 예약 과정이 군더더기 없이 매끄러웠습니다.",
+    "{area} 또 생각날 것 같아요.",
+]
+
+def char_rotation(seed):
+    """페이지 단위로 섞은 고객특성 문구 리스트(같은 페이지 내 인접 카드 중복 최소화)."""
+    pool = CHAR_POOL[:]
+    random.Random("char" + seed).shuffle(pool)
+    return pool
+
 def district_reviews(dist, region_name):
     rnd = random.Random("rev-" + region_name + dist["slug"])
     dongs = [d[0] for d in dist["dongs"]]
     out = []
-    used = set()
+    used = set(); used_c = set()
     for i in range(6):
         svc = rnd.choice(SERVICES)
         dong = rnd.choice(dongs)
         situ = rnd.choice([s for s in SITU if s not in used] or SITU); used.add(situ)
         praise = rnd.choice(PRAISE)
+        closer = rnd.choice([c for c in CLOSERS if c not in used_c] or CLOSERS); used_c.add(closer)
         dur = rnd.choice(["60분", "90분", "120분"])
         text = (f"{dong}에서 {situ} {svc['name']} {dur} 코스를 예약했어요. "
-                f"{praise} {dist['name']} 안에서는 평균 도착 시간대도 안내받은 그대로였습니다.")
+                f"{praise} {closer.format(area=dist['name'])}")
         out.append({"name": rnd.choice(NAMES), "rating": rnd.choice([5, 5, 5, 4]),
                     "text": text, "title": f"{dist['name']} {svc['name']} 후기"})
     return out
@@ -97,9 +136,15 @@ def build_home():
     services_cards = "".join(f'''<a class="card reveal" href="/service/{s["slug"]}/">
 <div class="kicker">{esc(s["kicker"])}</div><h3>{esc(s["name"])}</h3>
 <p>{esc(s["summary"])}</p><span class="more">자세히 보기 →</span></a>''' for s in SERVICES)
+    home_region_blurb = {
+        "seoul": "강남·홍대·여의도 등 25개 자치구 야간 수요가 많습니다.",
+        "gyeonggi": "분당·일산·동탄 등 31개 시군 신도시 직장인 수요가 큽니다.",
+        "incheon": "송도·청라·검단 국제도시 입주로 신규 고객이 많습니다.",
+        "busan": "서면·해운대·광안리 등 16개 구 번화가 수요가 많습니다.",
+    }
     region_cards = "".join(f'''<a class="card reveal" href="/locations/{r["slug"]}/">
 <div class="kicker">{esc(r["full"])}</div><h3>{esc(r["name"])} 출장마사지</h3>
-<p>{esc(r["name"])} 전역 행정구로 본사 디스패처가 직접 배차합니다. 권역별 평균 도착 시간을 데이터로 안내드립니다.</p>
+<p>{esc(home_region_blurb[r["slug"]])}</p>
 <span class="more">{esc(r["name"])} 지역 보기 →</span></a>''' for r in REGIONS)
 
     steps = [("예약", "전화 또는 24시 상담으로 위치·코스·인원을 알려주시면 본사 디스패처가 접수합니다."),
@@ -1092,12 +1137,19 @@ def build_magazine_article(m):
 def build_locations_hub():
     title = f"지역별 출장마사지 — 서울·경기·인천·부산 82개 행정구 | {BRAND}"
     desc = "마사지바삭이 출장하는 서울·경기·인천·부산 82개 행정구를 권역별로 안내합니다. 권역별 평균 도착 시간 데이터 제공."
+    region_blurb = {
+        "seoul": "강남·홍대·여의도 등 업무·상업 밀집 권역의 야간 수요가 많습니다.",
+        "gyeonggi": "분당·일산·동탄 등 신도시와 산업단지 직장인 수요가 큽니다.",
+        "incheon": "송도·청라·검단 국제도시 입주로 신규 고객 비율이 높습니다.",
+        "busan": "서면·해운대·광안리 등 번화가와 관광 권역 수요가 많습니다.",
+    }
     region_cards = ""
     for r in REGIONS:
         n = len(DISTRICTS[r["slug"]])
+        reps = "·".join(d["name"] for d in DISTRICTS[r["slug"]][:3])
         region_cards += f'''<a class="card reveal" href="/locations/{r["slug"]}/">
 <div class="kicker">{esc(r["full"])}</div><h3>{esc(r["name"])} {n}개 행정구</h3>
-<p>{esc(r["name"])} 전역으로 본사 디스패처가 직접 배차합니다. 권역별 평균 도착 시간을 데이터로 안내합니다.</p>
+<p>{esc(reps)} 등 {esc(r["name"])} {n}개 행정구 전역으로 배차합니다. {esc(region_blurb[r["slug"]])}</p>
 <span class="more">{esc(r["name"])} 보기 →</span></a>'''
     total = sum(len(v) for v in DISTRICTS.values())
     notes = (
@@ -1181,7 +1233,7 @@ def build_region_hub(r):
     desc = f"{r['full']} {n}개 행정구로 출장하는 마사지바삭. 권역별 평균 도착 시간과 정찰 요금을 안내합니다."
     cards = "".join(f'''<a class="card reveal" href="/locations/{r["slug"]}/{d["slug"]}/">
 <div class="kicker">{esc(r["name"])}</div><h3>{esc(d["name"])}</h3>
-<p>{esc(d["character"])}. 평균 도착 {d["dongs"][0][1]}분대부터.</p>
+<p>{esc(d["character"])}. {esc(d["dongs"][0][0])} 약 {d["dongs"][0][1]}분 등 동별 도착 데이터를 제공합니다.</p>
 <span class="more">{esc(d["name"])} 보기 →</span></a>''' for d in dists)
     fastest = min((dd for d in dists for dd in d["dongs"]), key=lambda x: x[1])
     avg_all = round(sum(dd[1] for d in dists for dd in d["dongs"]) / sum(len(d["dongs"]) for d in dists))
@@ -1322,13 +1374,14 @@ def build_district(r, d):
     dong_section = ""
     if dong_names:
         cs = []
-        for dname in dong_names:
+        rot = char_rotation(r["slug"] + d["slug"])
+        for i, dname in enumerate(dong_names):
             mins = dong_arrival(avg, r["slug"] + d["slug"] + dname)
             href = enc(f"/locations/{r['slug']}/{d['slug']}/{dname}/")
+            blurb = rot[i % len(rot)]
             cs.append(
                 f'<a class="card reveal" href="{href}"><div class="kicker">{esc(dn)}</div>'
-                f'<h3>{esc(dname)}</h3><p>{esc(dname)} 출장마사지 · 평균 도착 약 {mins}분. '
-                f'동별 도착 시간·추천 코스·후기를 확인하세요.</p>'
+                f'<h3>{esc(dname)}</h3><p>{esc(dname)} 출장마사지 · 평균 도착 약 {mins}분. {esc(blurb)}</p>'
                 f'<span class="more">{esc(dname)} 보기 →</span></a>')
         dong_section = (
             f'<section class="wrap cv"><div class="sec-head reveal">'
@@ -1342,13 +1395,14 @@ def build_district(r, d):
     gu_section = ""
     if gu_list:
         cs = []
-        for gslug, gname, gdongs in gu_list:
+        grot = char_rotation(r["slug"] + d["slug"] + "gu")
+        for i, (gslug, gname, gdongs) in enumerate(gu_list):
             gmin = dong_arrival(avg, r["slug"] + d["slug"] + gslug)
             href = f"/locations/{r['slug']}/{d['slug']}/{gslug}/"
             cs.append(
                 f'<a class="card reveal" href="{href}"><div class="kicker">{esc(dn)}</div>'
-                f'<h3>{esc(gname)}</h3><p>{esc(dn)} {esc(gname)} 출장마사지 · 평균 도착 약 {gmin}분. '
-                f'{esc("、".join(gdongs[:3]))} 등 권역 데이터를 확인하세요.</p>'
+                f'<h3>{esc(gname)}</h3><p>{esc(gname)}은 {esc("、".join(gdongs[:3]))} 등을 포함합니다. '
+                f'평균 도착 약 {gmin}분 · {esc(grot[i % len(grot)])}</p>'
                 f'<span class="more">{esc(gname)} 보기 →</span></a>')
         gu_section = (
             f'<section class="wrap cv"><div class="sec-head reveal">'
@@ -1440,11 +1494,14 @@ DSITU = ["야근 후 늦은 밤", "주말 오후", "오랜만의 휴식으로", 
 def dong_reviews(dong, dn, rn, key, n=5):
     rnd = random.Random("dongrev" + key)
     out = []
+    used_s = set(); used_p = set(); used_c = set()
     for i in range(n):
         svc = rnd.choice(SERVICES); dur = rnd.choice(["60분", "90분", "120분"])
-        situ = rnd.choice(DSITU); praise = rnd.choice(PRAISE)
+        situ = rnd.choice([s for s in DSITU if s not in used_s] or DSITU); used_s.add(situ)
+        praise = rnd.choice([p for p in PRAISE if p not in used_p] or PRAISE); used_p.add(praise)
+        closer = rnd.choice([c for c in CLOSERS if c not in used_c] or CLOSERS); used_c.add(closer)
         text = (f"{dong}에서 {situ} {svc['name']} {dur} 코스를 예약했어요. "
-                f"{praise} {dn} {dong} 쪽은 안내받은 도착 시간대도 정확했습니다.")
+                f"{praise} {closer.format(area=f'{dn} {dong}')}")
         out.append({"name": rnd.choice(NAMES), "rating": rnd.choice([5, 5, 5, 4]),
                     "text": text, "title": f"{dong} {svc['name']} 후기"})
     return out
@@ -1640,12 +1697,12 @@ def build_gu(r, city, gslug, gname, gdongs, city_avg):
               (cn, f"/locations/{r['slug']}/{city['slug']}/"), (gname, path)]
     # 행정동 카드 (구 → 동)
     dcs = []
-    for dn2, dm in dong_mins:
+    drot = char_rotation(r["slug"] + city["slug"] + gslug)
+    for i, (dn2, dm) in enumerate(dong_mins):
         dhref = enc(path + dn2 + "/")
         dcs.append(
             f'<a class="card reveal" href="{dhref}"><div class="kicker">{esc(gname)}</div>'
-            f'<h3>{esc(dn2)}</h3><p>{esc(gname)} {esc(dn2)} 출장마사지 · 평균 도착 약 {dm}분. '
-            f'동별 도착 시간·추천 코스·후기를 확인하세요.</p>'
+            f'<h3>{esc(dn2)}</h3><p>{esc(dn2)} 출장마사지 · 평균 도착 약 {dm}분. {esc(drot[i % len(drot)])}</p>'
             f'<span class="more">{esc(dn2)} 보기 →</span></a>')
     dong_section = (
         f'<section class="wrap cv"><div class="sec-head reveal">'
