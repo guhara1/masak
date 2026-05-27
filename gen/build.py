@@ -1315,8 +1315,10 @@ def build_district(r, d):
              f"{dn} 단골 고객을 위한 재방문 매니저 지정도 가능합니다."]),
     )
     reviews = district_reviews(d, rn)
-    # 행정동 목록 (서울·인천·부산) — 동별 페이지 카드
+    # 행정동 목록 (서울·인천·부산, 그리고 행정구 없는 경기 시·군) — 동별 페이지 카드
     dong_names = geo.DONG_REGIONS.get(r["slug"], {}).get(d["slug"], [])
+    if not dong_names and r["slug"] == "gyeonggi":
+        dong_names = geo.GYEONGGI_DONGS.get(d["slug"], [])
     dong_section = ""
     if dong_names:
         cs = []
