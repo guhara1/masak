@@ -131,8 +131,7 @@ def team_cards():
 # ════════════════════════════════════════════════════════════
 def build_home():
     title = f"{BRAND} | 수도권·부산 24시 프리미엄 출장마사지 — 본사 직접 배차"
-    desc = ("경기 파주 본사에서 서울·경기·인천·부산 82개 행정구로 출장 관리를 직접 배차합니다. "
-            "스웨디시·아로마·타이·로미로미·스포츠 5종, 6개국 매니저, 연중무휴 24시간 예약.")
+    desc = "서울·경기·인천·부산 전역 24시 출장마사지. 경기 파주 본사 직접 배차, 정찰 요금, 평균 30분대 도착."
     services_cards = "".join(f'''<a class="card reveal" href="/service/{s["slug"]}/">
 <div class="kicker">{esc(s["kicker"])}</div><h3>{esc(s["name"])}</h3>
 <p>{esc(s["summary"])}</p><span class="more">자세히 보기 →</span></a>''' for s in SERVICES)
