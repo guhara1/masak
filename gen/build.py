@@ -1413,10 +1413,13 @@ def build_district(r, d):
         faq_ld(faq))
     write(f"/locations/{r['slug']}/{d['slug']}/",
           head(title, desc, f"/locations/{r['slug']}/{d['slug']}/", extra_ld=ld), body)
-    # 행정동 leaf 페이지 생성
+    # 행정동 leaf 페이지 생성 (서울·인천·부산)
+    d_crumbs = [("홈", "/"), ("지역", "/locations/"), (rn, f"/locations/{r['slug']}/"),
+                (dn, f"/locations/{r['slug']}/{d['slug']}/")]
     for dname in dong_names:
-        build_dong(r, d, dname, avg, dong_names)
-    # 행정구 leaf 페이지 생성 (경기 일부 시)
+        build_dong(r, dn, f"/locations/{r['slug']}/{d['slug']}/", d_crumbs, avg,
+                   dname, dong_names, d["landmarks"], d["character"])
+    # 행정구 페이지 생성 (경기 일부 시) — 구가 행정동 허브
     for gslug, gname, gdongs in gu_list:
         build_gu(r, d, gslug, gname, gdongs, avg)
 
@@ -1444,16 +1447,17 @@ def dong_reviews(dong, dn, rn, key, n=5):
                     "text": text, "title": f"{dong} {svc['name']} 후기"})
     return out
 
-def build_dong(r, d, dong, district_avg, dong_list):
-    rn = r["name"]; dn = d["name"]; full = r["full"]
-    key = r["slug"] + d["slug"] + dong
-    mins = dong_arrival(district_avg, key)
+def build_dong(r, parent_name, parent_path, parent_crumbs, base_avg, dong, dong_list, landmarks_list, area_char):
+    rn = r["name"]; dn = parent_name; full = r["full"]
+    key = parent_path + dong
+    district_avg = base_avg
+    mins = dong_arrival(base_avg, key)
     sibs = [x for x in dong_list if x != dong]
     rnd = random.Random("sib" + key); rnd.shuffle(sibs)
     sib_str = "、".join(sibs[:3]) if sibs else dn
-    landmarks = "、".join(d["landmarks"])
-    lm0 = d["landmarks"][0]
-    path = f"/locations/{r['slug']}/{d['slug']}/{dong}/"
+    landmarks = "、".join(landmarks_list) if landmarks_list else dn
+    lm0 = landmarks_list[0] if landmarks_list else dn
+    path = parent_path + dong + "/"
     title = f"{rn} {dn} {dong} 출장마사지 — 평균 도착 약 {mins}분 | {BRAND}"
     desc = (f"{full} {dn} {dong} 출장마사지. 평균 도착 약 {mins}분, 정찰 요금, "
             f"{dong} 특화 후기를 안내합니다. 스웨디시·아로마·타이·로미로미·스포츠 24시간.")
@@ -1465,7 +1469,7 @@ def build_dong(r, d, dong, district_avg, dong_list):
              f"인접한 {sib_str} 방면과 매니저 동선을 공유해 배차 효율을 높이고 있습니다.",
              "출퇴근·심야·기상 상황에 따라 편차가 있어 예약 시 실제 예상 시간을 다시 안내드립니다."]),
         note_card(6, f"{dong} 시간대별 콜 분포",
-            [f"{dong}이 속한 {dn}은 {d['character']}입니다.",
+            [f"{dong}이 속한 {dn}은 {area_char}입니다.",
              "그래서 저녁부터 심야로 갈수록 예약이 몰리는 시간대가 형성됩니다.",
              "피크 시간에는 표기 평균보다 도착이 다소 길어질 수 있어 여유 있는 예약을 권합니다.",
              f"본사는 {dong} 인근의 콜 분포를 분석해 야간 배차 인력을 보강하고 있습니다."]),
@@ -1511,8 +1515,7 @@ def build_dong(r, d, dong, district_avg, dong_list):
         ("관리사 국적을 고를 수 있나요?", "한국·중국·태국·베트남·러시아·일본 6개국 중 선호를 말씀하시면 배차 상황에 맞춰 반영합니다."),
         (f"{dong} 예약은 어떻게 하나요?", f"{TEL} 전화 또는 24시간 상담으로 위치와 코스를 알려주시면 본사 디스패처가 배차합니다."),
     ]
-    crumbs = [("홈", "/"), ("지역", "/locations/"), (rn, f"/locations/{r['slug']}/"),
-              (dn, f"/locations/{r['slug']}/{d['slug']}/"), (dong, path)]
+    crumbs = list(parent_crumbs) + [(dong, path)]
     body = f'''{header()}
 {crumb_html(crumbs)}
 <section class="hero compact"><div class="hero-inner"><div class="hero-copy reveal">
@@ -1524,7 +1527,7 @@ def build_dong(r, d, dong, district_avg, dong_list):
 <div class="chip">AVAILABLE<b>연중무휴 24시</b></div>
 <div class="chip">AREA<b>{esc(dn)}</b></div></div>
 <div class="actions"><a class="btn btn-primary" href="tel:{TEL}">예약 {esc(TEL)} →</a>
-<a class="btn btn-ghost" href="{enc(f"/locations/{r['slug']}/{d['slug']}/")}">{esc(dn)} 전체 보기</a></div></div></div></section>
+<a class="btn btn-ghost" href="{enc(parent_path)}">{esc(dn)} 전체 보기</a></div></div></div></section>
 
 <section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">OVERVIEW</span><h2>{esc(dong)} 운영 개요</h2></div>
 {"".join(overview)}</section>
@@ -1633,6 +1636,22 @@ def build_gu(r, city, gslug, gname, gdongs, city_avg):
     ]
     crumbs = [("홈", "/"), ("지역", "/locations/"), (rn, f"/locations/{r['slug']}/"),
               (cn, f"/locations/{r['slug']}/{city['slug']}/"), (gname, path)]
+    # 행정동 카드 (구 → 동)
+    dcs = []
+    for dn2, dm in dong_mins:
+        dhref = enc(path + dn2 + "/")
+        dcs.append(
+            f'<a class="card reveal" href="{dhref}"><div class="kicker">{esc(gname)}</div>'
+            f'<h3>{esc(dn2)}</h3><p>{esc(gname)} {esc(dn2)} 출장마사지 · 평균 도착 약 {dm}분. '
+            f'동별 도착 시간·추천 코스·후기를 확인하세요.</p>'
+            f'<span class="more">{esc(dn2)} 보기 →</span></a>')
+    dong_section = (
+        f'<section class="wrap cv"><div class="sec-head reveal">'
+        f'<span class="eyebrow">DONG · 행정동 {len(dong_mins)}</span>'
+        f'<h2>{esc(gname)} 행정동</h2>'
+        f'<p class="lead">아래 행정동을 누르면 동별 평균 도착 시간과 특화 콘텐츠를 확인할 수 있습니다. '
+        f'1동·2동처럼 번호가 붙은 동은 기본 동명으로 통합했습니다.</p></div>'
+        f'<div class="grid g4">{"".join(dcs)}</div></section>')
     body = f'''{header()}
 {crumb_html(crumbs)}
 <section class="hero compact"><div class="hero-inner"><div class="hero-copy reveal">
@@ -1655,6 +1674,8 @@ def build_gu(r, city, gslug, gname, gdongs, city_avg):
 <p>도착 시간: 최근 {DISPATCH_MONTHS}개월 자체 배차 로그 기준 {esc(gname)} 동별 평균값(정상 교통 기준).</p>
 <p>측정: 예약 접수 시각부터 현장 도착 보고 시각까지 실측 차이를 동 단위로 집계.</p>
 <p>표기 평균은 참고용이며, 출퇴근·심야·기상에 따라 편차가 있습니다.</p></div></section>
+
+{dong_section}
 
 <section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">PRICING</span><h2>요금</h2></div>
 {price_grid(SERVICES)}</section>
@@ -1680,6 +1701,13 @@ def build_gu(r, city, gslug, gname, gdongs, city_avg):
         *reviews_ld(reviews, f"{gname} 출장마사지"),
         faq_ld(faq))
     write(path, head(title, desc, path, extra_ld=ld), body)
+    # 구 → 행정동 leaf 페이지 생성
+    g_crumbs = [("홈", "/"), ("지역", "/locations/"), (rn, f"/locations/{r['slug']}/"),
+                (cn, f"/locations/{r['slug']}/{city['slug']}/"), (gname, path)]
+    g_landmarks = city.get("landmarks", []) or [cn]
+    g_char = f"{cn}의 주요 생활·업무 권역"
+    for dname in gdongs:
+        build_dong(r, gname, path, g_crumbs, gavg, dname, gdongs, g_landmarks, g_char)
 
 
 # ════════════════════════════════════════════════════════════
