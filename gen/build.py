@@ -252,7 +252,9 @@ def build_home():
          "dateModified": "2026-05-27", "mainEntityOfPage": DOMAIN + "/"},
         faq_ld(faq),
     )
-    write("/", head(title, desc, "/", extra_ld=ld), body)
+    verify = ('<meta name="naver-site-verification" content="39f3f4a1965d8ab65fa2bb8bf3e3220e237d8ca1">\n'
+              '<meta name="google-site-verification" content="X93GGlzAy5MWuA-HXEijTHTQCYAIa3_j7FVZKL1k9pg">')
+    write("/", head(title, desc, "/", extra_ld=ld, extra_meta=verify), body)
 
 
 # ════════════════════════════════════════════════════════════

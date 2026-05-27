@@ -252,7 +252,7 @@ def jsonld(*objs):
             + json.dumps(data_obj, ensure_ascii=False, separators=(",", ":"))
             + "</script>")
 
-def head(title, desc, path, *, og_type="website", extra_ld="", img="/assets/og-cover.jpg"):
+def head(title, desc, path, *, og_type="website", extra_ld="", extra_meta="", img="/assets/og-cover.jpg"):
     url = DOMAIN + enc(path)
     return f"""<!doctype html><html lang="ko"><head>
 <meta charset="utf-8">
@@ -285,6 +285,7 @@ def head(title, desc, path, *, og_type="website", extra_ld="", img="/assets/og-c
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
+{extra_meta}
 <style>{CSS}</style>
 {extra_ld}
 </head><body>"""

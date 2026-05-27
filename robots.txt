@@ -10,5 +10,5 @@ Allow: /
 User-agent: Google-Extended
 Allow: /
 
-Sitemap: https://massagebasak.com/sitemap.xml
-Host: massagebasak.com
+Sitemap: https://masak-seven.vercel.app/sitemap.xml
+Host: masak-seven.vercel.app
