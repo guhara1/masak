@@ -2243,6 +2243,10 @@ Host: {host}
     with open(os.path.join(ROOT, f"{INDEXNOW_KEY}.txt"), "w", encoding="utf-8") as f:
         f.write(INDEXNOW_KEY)
 
+    # ── 네이버 서치어드바이저 HTML 파일 인증 ──
+    with open(os.path.join(ROOT, NAVER_VERIFY_FILE), "w", encoding="utf-8") as f:
+        f.write(f"naver-site-verification: {NAVER_VERIFY_FILE}")
+
     import json as _j
     manifest = {
         "name": f"{BRAND} 출장마사지", "short_name": BRAND,

@@ -21,6 +21,9 @@ EMAIL = "help@massagebasak.com"
 MTS_NO = "제2024-경기파주-0000호"          # 통신판매업신고 (placeholder 형식)
 PRIVACY_OFFICER = "김유환"
 
+# 네이버 서치어드바이저 HTML 파일 인증 (루트에 동일 파일 생성)
+NAVER_VERIFY_FILE = "naver73826c28db39457d1beb246f80d78d50.html"
+
 # 운영 데이터 (E-E-A-T Experience 신호 — 사이트 전역에서 일관 인용)
 DISPATCH_MONTHS = 6
 DISPATCH_TOTAL = 28400
