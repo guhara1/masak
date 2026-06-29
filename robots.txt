@@ -26,5 +26,5 @@ Allow: /
 User-agent: Google-Extended
 Allow: /
 
-Sitemap: https://masak-seven.vercel.app/sitemap.xml
-Host: masak-seven.vercel.app
+Sitemap: https://masak-taupe.vercel.app/sitemap.xml
+Host: masak-taupe.vercel.app

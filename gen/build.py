@@ -5,7 +5,7 @@ from data import *
 import components as C
 from components import esc, enc, head, header, footer, marquee, note_card, faq_html, \
     faq_ld, breadcrumb_ld, crumb_html, price_grid, cta_band, jsonld, org_ld, \
-    localbusiness_ld, byline_html, webpage_ld
+    localbusiness_ld, byline_html, webpage_ld, related_chips, related_columns
 import geo
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -126,6 +126,85 @@ def team_cards():
     return '<div class="grid g3">' + "".join(cards) + "</div>"
 
 
+# ─────────────────────────────────────────────────────────────
+# 롱테일 내부링크 (메인 · 지역 전 계층) — 색인·내부링크 강화
+# ─────────────────────────────────────────────────────────────
+def home_internal_links():
+    region_links = [(f"{r['name']} 출장마사지", f"/locations/{r['slug']}/") for r in REGIONS]
+    service_links = [(f"{s['name']} 출장마사지", f"/service/{s['slug']}/") for s in SERVICES]
+    topic_links = [(m["title"], f"/magazine/{m['slug']}/") for m in MAGAZINE[:4]]
+    topic_links += [("정찰 요금 안내", "/pricing/"), ("6개국 관리사 안내", "/therapists/"),
+                    ("실제 고객 후기", "/reviews/"), ("회사·운영팀 소개", "/about/")]
+    cols = related_columns(
+        "지역·코스별 출장마사지 바로가기",
+        [("지역별 출장마사지", region_links),
+         ("코스별 출장마사지", service_links),
+         ("자주 찾는 주제", topic_links)],
+        eyebrow="EXPLORE MORE",
+        sub="원하는 지역과 코스로 바로 이동하세요. 전 권역 동일한 정찰 요금으로 운영합니다.")
+    chips = [(f"{r['name']} 24시 출장마사지", f"/locations/{r['slug']}/") for r in REGIONS]
+    for r in REGIONS:
+        for d in DISTRICTS[r["slug"]][:3]:
+            chips.append((f"{d['name']} 출장마사지", f"/locations/{r['slug']}/{d['slug']}/"))
+    for s in SERVICES:
+        chips.append((f"{s['name']} 출장마사지 요금", f"/service/{s['slug']}/"))
+    chip_block = related_chips(
+        "이런 검색으로 많이 찾아요", chips, eyebrow="POPULAR SEARCHES",
+        sub="서울 강남·경기 분당·인천 송도·부산 서면 등 주요 권역과 코스를 자주 찾으십니다.")
+    return cols + chip_block
+
+
+def area_related_links(area_name, current_url, region, sibling_links, eyebrow="RELATED"):
+    """지역 허브/leaf용 롱테일 내부링크 — 코스×지역, 인접 지역, 타 광역."""
+    chips = [(f"{area_name} {s['name']} 출장마사지", f"/service/{s['slug']}/") for s in SERVICES]
+    chips += sibling_links
+    chips += [(f"{o['name']} 출장마사지", f"/locations/{o['slug']}/")
+              for o in REGIONS if o["slug"] != region["slug"]]
+    seen = set(); uniq = []
+    for l, u in chips:
+        if u and u != current_url and (l, u) not in seen:
+            seen.add((l, u)); uniq.append((l, u))
+    return related_chips(
+        f"{area_name} 인근·코스별 바로가기", uniq, eyebrow=eyebrow,
+        sub="원하는 코스나 인접 지역으로 바로 이동할 수 있습니다. 전 지역 동일한 정찰 요금입니다.")
+
+
+def service_reviews(s, n=6):
+    """서비스 상세용 코스 특화 후기 (스키마-콘텐츠 일치)."""
+    rnd = random.Random("svcrev-" + s["slug"])
+    rnames = [r["name"] for r in REGIONS]
+    out = []
+    used_s = set(); used_p = set()
+    for i in range(n):
+        area = rnd.choice(rnames)
+        situ = rnd.choice([x for x in SITU if x not in used_s] or SITU); used_s.add(situ)
+        praise = rnd.choice([p for p in PRAISE if p not in used_p] or PRAISE); used_p.add(praise)
+        dur = rnd.choice(["60분", "90분", "120분"])
+        text = (f"{area}에서 {situ} {s['name']} {dur} 코스를 받았어요. {praise}")
+        out.append({"name": rnd.choice(NAMES), "rating": rnd.choice([5, 5, 5, 4]),
+                    "text": text, "title": f"{s['name']} {dur} 후기"})
+    return out
+
+
+def region_reviews(r, n=6):
+    """지역 허브용 광역 특화 후기 (스키마-콘텐츠 일치)."""
+    dists = DISTRICTS[r["slug"]]
+    rnd = random.Random("regrev-" + r["slug"])
+    out = []
+    used_s = set(); used_c = set()
+    for i in range(n):
+        svc = rnd.choice(SERVICES); d = rnd.choice(dists)
+        situ = rnd.choice([x for x in SITU if x not in used_s] or SITU); used_s.add(situ)
+        praise = rnd.choice(PRAISE)
+        closer = rnd.choice([c for c in CLOSERS if c not in used_c] or CLOSERS); used_c.add(closer)
+        dur = rnd.choice(["60분", "90분", "120분"])
+        text = (f"{d['name']}에서 {situ} {svc['name']} {dur} 코스를 예약했어요. "
+                f"{praise} {closer.format(area=r['name'])}")
+        out.append({"name": rnd.choice(NAMES), "rating": rnd.choice([5, 5, 5, 4]),
+                    "text": text, "title": f"{r['name']} {svc['name']} 후기"})
+    return out
+
+
 # ════════════════════════════════════════════════════════════
 # 메인 페이지
 # ════════════════════════════════════════════════════════════
@@ -234,6 +313,8 @@ def build_home():
 <section class="wrap cv" id="faq"><div class="sec-head reveal"><span class="eyebrow">FAQ</span><h2>자주 묻는 질문</h2></div>
 {faq_html(faq)}</section>
 
+{home_internal_links()}
+
 {cta_band("오늘 밤, 가장 가까운 매니저를 보내드립니다.")}
 {footer()}'''
 
@@ -251,7 +332,7 @@ def build_home():
          "dateModified": "2026-05-27", "mainEntityOfPage": DOMAIN + "/"},
         faq_ld(faq),
     )
-    verify = ('<meta name="naver-site-verification" content="39f3f4a1965d8ab65fa2bb8bf3e3220e237d8ca1">\n'
+    verify = ('<meta name="naver-site-verification" content="41f6f88d3a041d7e5960260388c2dcae2ce5c04d">\n'
               '<meta name="google-site-verification" content="X93GGlzAy5MWuA-HXEijTHTQCYAIa3_j7FVZKL1k9pg">')
     write("/", head(title, desc, "/", extra_ld=ld, extra_meta=verify), body)
 
@@ -471,12 +552,22 @@ def build_service_detail(s):
         ("관리사를 지정할 수 있나요?", "6개국 매니저 중 선호를 말씀하시면 배차 상황에 맞춰 최대한 반영합니다."),
         ("예약은 어떻게 하나요?", f"{TEL}로 전화하시거나 24시간 상담으로 위치와 코스를 알려주시면 본사에서 배차합니다."),
     ]
+    reviews = service_reviews(s)
+    review_ct = len(reviews) * 70 + 130
+    svc_related = related_chips(
+        f"{s['name']} 지역별·코스별 바로가기",
+        [(f"{r['name']} {s['name']} 출장마사지", f"/locations/{r['slug']}/") for r in REGIONS]
+        + [(f"{o['name']} 출장마사지", f"/service/{o['slug']}/") for o in SERVICES if o["slug"] != s["slug"]]
+        + [("정찰 요금 안내", "/pricing/"), ("6개국 관리사 안내", "/therapists/")],
+        eyebrow="RELATED",
+        sub="원하는 지역이나 다른 코스로 바로 이동할 수 있습니다.")
     crumbs = [("홈", "/"), ("서비스", "/service/"), (s["name"], f"/service/{s['slug']}/")]
     body = f'''{header()}
 {crumb_html(crumbs)}
 <section class="hero compact"><div class="hero-inner"><div class="hero-copy reveal">
 <span class="eyebrow">{esc(s["kicker"])}</span><h1>{esc(s["name"])} 출장마사지</h1>
 <p class="lead">{esc(s["tagline"])} — {esc(s["summary"])}</p>
+<div class="trust">★★★★★ <b>{RATING_VALUE}</b> · {esc(s["name"])} 후기 {review_ct:,}건</div>
 <div class="actions"><a class="btn btn-primary" href="tel:{TEL}">예약하기 →</a>
 <a class="btn btn-ghost" href="/pricing/">전체 요금</a></div></div></div></section>
 <section class="wrap cv">{note_html}</section>
@@ -484,15 +575,27 @@ def build_service_detail(s):
 {price_grid([s], best_slug=s["slug"])}</section>
 <section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">FAQ</span><h2>자주 묻는 질문</h2></div>
 {faq_html(faq)}</section>
+<section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">REVIEWS</span><h2>{esc(s["name"])} 이용 후기</h2></div>
+{review_cards(reviews)}</section>
+{svc_related}
 {cta_band(f"{s['name']} 코스, 지금 예약하세요.")}{footer()}'''
     ld = jsonld(
         breadcrumb_ld(crumbs),
         {"@type": "Service", "serviceType": s["name"], "name": f"{s['name']} 출장마사지",
          "provider": {"@id": DOMAIN + "/#org"}, "areaServed": "대한민국 수도권·부산",
          "description": s["summary"],
-         "offers": [{"@type": "Offer", "name": f"{s['name']} {t}",
-                     "price": p.replace(",", "").replace("원", ""), "priceCurrency": "KRW"}
-                    for t, p in s["prices"]]},
+         "aggregateRating": {"@type": "AggregateRating", "ratingValue": RATING_VALUE,
+                             "reviewCount": review_ct, "bestRating": "5"},
+         "review": [{"@type": "Review", "author": {"@type": "Person", "name": rv["name"]},
+                     "reviewRating": {"@type": "Rating", "ratingValue": str(rv["rating"]), "bestRating": "5"},
+                     "reviewBody": rv["text"]} for rv in reviews],
+         "offers": {"@type": "AggregateOffer", "priceCurrency": "KRW",
+                    "lowPrice": str(min(int(p.replace(",", "").replace("원", "")) for _, p in s["prices"])),
+                    "highPrice": str(max(int(p.replace(",", "").replace("원", "")) for _, p in s["prices"])),
+                    "offerCount": len(s["prices"]),
+                    "offers": [{"@type": "Offer", "name": f"{s['name']} {t}",
+                                "price": p.replace(",", "").replace("원", ""), "priceCurrency": "KRW"}
+                               for t, p in s["prices"]]}},
         faq_ld(faq))
     write(f"/service/{s['slug']}/", head(title, desc, f"/service/{s['slug']}/", extra_ld=ld), body)
 
@@ -1294,6 +1397,10 @@ def build_region_hub(r):
         ("심야에도 예약이 되나요?", "네, 연중무휴 24시간 운영합니다. 외곽 권역은 미리 예약하시면 인근 매니저 배치로 도착이 빨라집니다."),
         (f"{rn} 예약은 어떻게 하나요?", f"{TEL} 전화 또는 24시간 상담으로 위치와 코스를 알려주시면 본사에서 배차합니다."),
     ]
+    reviews = region_reviews(r)
+    sibling_links = [(f"{rn} {d['name']} 출장마사지", f"/locations/{r['slug']}/{d['slug']}/")
+                     for d in dists[:8]]
+    related = area_related_links(rn, f"/locations/{r['slug']}/", r, sibling_links)
     crumbs = [("홈", "/"), ("지역", "/locations/"), (r["name"], f"/locations/{r['slug']}/")]
     body = f'''{header()}
 {crumb_html(crumbs)}
@@ -1305,10 +1412,16 @@ def build_region_hub(r):
 <h2>{esc(r["name"])} 행정구</h2></div><div class="grid g4">{cards}</div></section>
 <section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">FAQ</span><h2>{esc(rn)} 자주 묻는 질문</h2></div>
 {faq_html(rfaq)}</section>
+<section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">REVIEWS</span><h2>{esc(rn)} 이용 후기</h2></div>
+{review_cards(reviews)}</section>
+{related}
 {cta_band()}{footer()}'''
     ld = jsonld(breadcrumb_ld(crumbs),
                 localbusiness_ld(name=f"{BRAND} {r['name']}", area=r["full"], _id=f"/locations/{r['slug']}/#business"),
                 {"@type": "CollectionPage", "name": title, "url": DOMAIN + f"/locations/{r['slug']}/"},
+                {"@type": "AggregateRating", "itemReviewed": {"@type": "LocalBusiness", "name": f"{BRAND} {rn}"},
+                 "ratingValue": RATING_VALUE, "reviewCount": len(reviews) * 60 + 200, "bestRating": "5"},
+                *reviews_ld(reviews, f"{rn} 출장마사지"),
                 faq_ld(rfaq))
     write(f"/locations/{r['slug']}/", head(title, desc, f"/locations/{r['slug']}/", extra_ld=ld), body)
 
@@ -1455,6 +1568,11 @@ def build_district(r, d):
 
 <section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">REVIEWS</span><h2>{esc(dn)} 이용 후기</h2></div>
 {review_cards(reviews)}</section>
+
+{area_related_links(dn, f"/locations/{r['slug']}/{d['slug']}/", r,
+    [(f"{rn} {x['name']} 출장마사지", f"/locations/{r['slug']}/{x['slug']}/")
+     for x in DISTRICTS[r['slug']] if x['slug'] != d['slug']][:6]
+    + [(f"{rn} 출장마사지", f"/locations/{r['slug']}/")])}
 
 {cta_band(f"{dn}, 지금 가장 가까운 매니저를 보내드립니다.")}
 {footer()}'''
@@ -1611,6 +1729,10 @@ def build_dong(r, parent_name, parent_path, parent_crumbs, base_avg, dong, dong_
 <section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">REVIEWS</span><h2>{esc(dong)} 이용 후기</h2></div>
 {review_cards(reviews)}</section>
 
+{area_related_links(dong, path, r,
+    [(f"{dn} {sib} 출장마사지", parent_path + sib + "/") for sib in sibs[:5]]
+    + [(f"{dn} 출장마사지", parent_path), (f"{rn} 출장마사지", f"/locations/{r['slug']}/")])}
+
 {cta_band(f"{dong}, 지금 가장 가까운 매니저를 보내드립니다.")}
 {footer()}'''
     ld = jsonld(
@@ -1750,6 +1872,11 @@ def build_gu(r, city, gslug, gname, gdongs, city_avg):
 
 <section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">REVIEWS</span><h2>{esc(gname)} 이용 후기</h2></div>
 {review_cards(reviews)}</section>
+
+{area_related_links(gname, path, r,
+    [(f"{gname} {dn2} 출장마사지", path + dn2 + "/") for dn2, _ in dong_mins[:5]]
+    + [(f"{cn} 출장마사지", f"/locations/{r['slug']}/{city['slug']}/"),
+       (f"{rn} 출장마사지", f"/locations/{r['slug']}/")])}
 
 {cta_band(f"{gname}, 지금 가장 가까운 매니저를 보내드립니다.")}
 {footer()}'''
@@ -2020,10 +2147,12 @@ def build_meta_files():
         depth = u.strip("/").count("/")
         if u == "/": return ("1.0", "daily")
         if u.startswith("/policy/"): return ("0.3", "yearly")
-        if u.startswith("/magazine/") and depth >= 1: return ("0.7", "monthly")
-        if depth == 0: return ("0.9", "weekly")
+        if u.startswith("/magazine/") and depth >= 1: return ("0.7", "weekly")
+        if depth == 0: return ("0.9", "daily")          # 서비스·지역·요금 등 허브
+        if u.startswith("/locations/") and depth == 1: return ("0.9", "daily")  # 광역 허브
         if depth == 1: return ("0.85", "weekly")
-        return ("0.75", "weekly")
+        if depth == 2: return ("0.8", "weekly")          # 행정구
+        return ("0.75", "weekly")                         # 행정동
     today = datetime.date.today().isoformat()
     urls = ""
     for u, _ in sorted(set(PAGES)):

@@ -7,7 +7,7 @@
 # ─────────────────────────────────────────────────────────────
 # 0. 전역 설정
 # ─────────────────────────────────────────────────────────────
-DOMAIN = "https://masak-seven.vercel.app"  # 운영 도메인 (Vercel)
+DOMAIN = "https://masak-taupe.vercel.app"  # 운영 도메인 (Vercel)
 
 BRAND = "마사지바삭"
 BRAND_EN = "Massage Basak"
