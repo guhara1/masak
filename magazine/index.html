@@ -9,22 +9,22 @@
 <title>매거진 — 출장마사지 가이드와 데이터 | 마사지바삭</title>
 <meta name="description" content="예약 가이드, 컨디션별 코스 선택, 도착 시간 데이터 등 마사지바삭 운영팀이 직접 쓴 글을 모았습니다.">
 <meta name="author" content="마사지바삭 운영팀">
-<link rel="canonical" href="https://masak-seven.vercel.app/magazine/">
-<link rel="alternate" hreflang="ko-KR" href="https://masak-seven.vercel.app/magazine/">
-<link rel="alternate" hreflang="x-default" href="https://masak-seven.vercel.app/magazine/">
+<link rel="canonical" href="https://masak-taupe.vercel.app/magazine/">
+<link rel="alternate" hreflang="ko-KR" href="https://masak-taupe.vercel.app/magazine/">
+<link rel="alternate" hreflang="x-default" href="https://masak-taupe.vercel.app/magazine/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="마사지바삭">
 <meta property="og:locale" content="ko_KR">
 <meta property="og:title" content="매거진 — 출장마사지 가이드와 데이터 | 마사지바삭">
 <meta property="og:description" content="예약 가이드, 컨디션별 코스 선택, 도착 시간 데이터 등 마사지바삭 운영팀이 직접 쓴 글을 모았습니다.">
-<meta property="og:url" content="https://masak-seven.vercel.app/magazine/">
-<meta property="og:image" content="https://masak-seven.vercel.app/assets/og-cover.jpg">
+<meta property="og:url" content="https://masak-taupe.vercel.app/magazine/">
+<meta property="og:image" content="https://masak-taupe.vercel.app/assets/og-cover.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="매거진 — 출장마사지 가이드와 데이터 | 마사지바삭">
 <meta name="twitter:description" content="예약 가이드, 컨디션별 코스 선택, 도착 시간 데이터 등 마사지바삭 운영팀이 직접 쓴 글을 모았습니다.">
-<meta name="twitter:image" content="https://masak-seven.vercel.app/assets/og-cover.jpg">
+<meta name="twitter:image" content="https://masak-taupe.vercel.app/assets/og-cover.jpg">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -202,6 +202,17 @@ details>div{padding:0 22px 20px;color:var(--muted);font-size:14px;line-height:1.
 .notice{font-size:12px;color:var(--dim);background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:18px;line-height:1.7}
 .byline{font-size:12.5px;color:var(--dim);margin-top:14px;line-height:1.7}
 .byline a{color:var(--muted);text-decoration:underline}
+/* 롱테일 내부링크 칩 */
+.rl-grid{display:flex;flex-wrap:wrap;gap:10px}
+.rl-chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;
+ padding:9px 15px;font-size:13.5px;color:var(--muted);background:var(--grad-soft);transition:.2s;font-weight:600}
+.rl-chip::before{content:"›";color:var(--gold);font-weight:800}
+.rl-chip:hover{color:var(--text);border-color:rgba(244,210,156,.4);transform:translateY(-2px)}
+.rl-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px 40px}
+.rl-cols h4{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
+.rl-cols ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+.rl-cols a{font-size:14px;color:var(--muted);transition:.18s}
+.rl-cols a:hover{color:var(--rose)}
 /* 모바일 하단 고정 전화 버튼 */
 .callbar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;
  padding:9px 12px calc(9px + env(safe-area-inset-bottom,0px));
@@ -239,7 +250,7 @@ details>div{padding:0 22px 20px;color:var(--muted);font-size:14px;line-height:1.
 @media(hover:none){.glass,.floating{backdrop-filter:none}}
 @media(prefers-reduced-motion:reduce){.marquee-track,.pulse{animation:none}.reveal{opacity:1;transform:none}}
 </style>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"홈","item":"https://masak-seven.vercel.app/"},{"@type":"ListItem","position":2,"name":"매거진","item":"https://masak-seven.vercel.app/magazine/"}]},{"@type":"Blog","name":"마사지바삭 매거진","url":"https://masak-seven.vercel.app/magazine/"},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"매거진 글은 누가 쓰나요?","acceptedAnswer":{"@type":"Answer","text":"마사지바삭 운영팀이 직접 작성하고 안전 자문 트레이너 박지연이 검수합니다. 모든 글에 책임 저자와 검수자를 명시합니다."}},{"@type":"Question","name":"어떤 내용을 다루나요?","acceptedAnswer":{"@type":"Answer","text":"처음 예약 가이드, 컨디션별 코스 선택, 권역별 도착 시간 데이터 해설 등 실제 이용에 도움이 되는 정보를 다룹니다."}},{"@type":"Question","name":"정보의 출처는 무엇인가요?","acceptedAnswer":{"@type":"Answer","text":"도착 시간 등 수치는 최근 6개월 자체 배차 로그를 1차 출처로 합니다. 확인되지 않은 효능은 주장하지 않습니다."}},{"@type":"Question","name":"내용에 오류가 있으면 어떻게 하나요?","acceptedAnswer":{"@type":"Answer","text":"0508-202-4717 고객센터로 제보해 주시면 확인 후 신속히 정정합니다."}}]}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"홈","item":"https://masak-taupe.vercel.app/"},{"@type":"ListItem","position":2,"name":"매거진","item":"https://masak-taupe.vercel.app/magazine/"}]},{"@type":"Blog","name":"마사지바삭 매거진","url":"https://masak-taupe.vercel.app/magazine/"},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"매거진 글은 누가 쓰나요?","acceptedAnswer":{"@type":"Answer","text":"마사지바삭 운영팀이 직접 작성하고 안전 자문 트레이너 박지연이 검수합니다. 모든 글에 책임 저자와 검수자를 명시합니다."}},{"@type":"Question","name":"어떤 내용을 다루나요?","acceptedAnswer":{"@type":"Answer","text":"처음 예약 가이드, 컨디션별 코스 선택, 권역별 도착 시간 데이터 해설 등 실제 이용에 도움이 되는 정보를 다룹니다."}},{"@type":"Question","name":"정보의 출처는 무엇인가요?","acceptedAnswer":{"@type":"Answer","text":"도착 시간 등 수치는 최근 6개월 자체 배차 로그를 1차 출처로 합니다. 확인되지 않은 효능은 주장하지 않습니다."}},{"@type":"Question","name":"내용에 오류가 있으면 어떻게 하나요?","acceptedAnswer":{"@type":"Answer","text":"0508-202-4717 고객센터로 제보해 주시면 확인 후 신속히 정정합니다."}}]}]}</script>
 </head><body><header><nav class="nav" aria-label="주 메뉴">
 <a class="brand" href="/" aria-label="마사지바삭 홈"><span class="dot"></span>마사지바삭</a>
 <button class="toggle" aria-expanded="false" aria-controls="primary-menu" aria-label="메뉴 열기">☰</button>

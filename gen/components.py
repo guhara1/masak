@@ -185,6 +185,17 @@ details>div{padding:0 22px 20px;color:var(--muted);font-size:14px;line-height:1.
 .notice{font-size:12px;color:var(--dim);background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:18px;line-height:1.7}
 .byline{font-size:12.5px;color:var(--dim);margin-top:14px;line-height:1.7}
 .byline a{color:var(--muted);text-decoration:underline}
+/* 롱테일 내부링크 칩 */
+.rl-grid{display:flex;flex-wrap:wrap;gap:10px}
+.rl-chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;
+ padding:9px 15px;font-size:13.5px;color:var(--muted);background:var(--grad-soft);transition:.2s;font-weight:600}
+.rl-chip::before{content:"›";color:var(--gold);font-weight:800}
+.rl-chip:hover{color:var(--text);border-color:rgba(244,210,156,.4);transform:translateY(-2px)}
+.rl-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px 40px}
+.rl-cols h4{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
+.rl-cols ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+.rl-cols a{font-size:14px;color:var(--muted);transition:.18s}
+.rl-cols a:hover{color:var(--rose)}
 /* 모바일 하단 고정 전화 버튼 */
 .callbar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;
  padding:9px 12px calc(9px + env(safe-area-inset-bottom,0px));
@@ -354,6 +365,25 @@ def price_grid(services, best_slug="aroma"):
 <p style="font-size:13.5px;color:var(--muted);margin-top:6px">{esc(s["tagline"])}</p>
 <div class="time-rows">{rows}</div></div>''')
     return '<div class="grid g4">' + "".join(cards) + "</div>"
+
+def related_chips(title, links, eyebrow="RELATED", sub=None):
+    """롱테일 내부링크 칩 블록. links: [(label, url), ...]"""
+    items = "".join(f'<a class="rl-chip" href="{enc(u)}">{esc(l)}</a>' for l, u in links if u)
+    sub_html = f'<p class="lead">{esc(sub)}</p>' if sub else ""
+    return f'''<section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">{esc(eyebrow)}</span>
+<h2>{esc(title)}</h2>{sub_html}</div><div class="rl-grid reveal">{items}</div></section>'''
+
+
+def related_columns(title, groups, eyebrow="EXPLORE MORE", sub=None):
+    """다중 컬럼 내부링크 블록. groups: [(컬럼제목, [(label,url),...]), ...]"""
+    cols = ""
+    for gtitle, links in groups:
+        lis = "".join(f'<li><a href="{enc(u)}">{esc(l)}</a></li>' for l, u in links if u)
+        cols += f"<div><h4>{esc(gtitle)}</h4><ul>{lis}</ul></div>"
+    sub_html = f'<p class="lead">{esc(sub)}</p>' if sub else ""
+    return f'''<section class="wrap cv"><div class="sec-head reveal"><span class="eyebrow">{esc(eyebrow)}</span>
+<h2>{esc(title)}</h2>{sub_html}</div><div class="rl-cols reveal">{cols}</div></section>'''
+
 
 def cta_band(title="오늘 밤, 예약하시겠어요?", sub=None):
     sub = sub or f"{TEL} · 연중무휴 24시간 상담 · 본사 디스패처가 직접 배차합니다."
